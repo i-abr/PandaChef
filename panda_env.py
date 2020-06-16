@@ -4,7 +4,7 @@ import math
 
 useNullSpace = 1
 ikSolver = 0
-pandaEndEffectorIndex = 11 #8
+pandaEndEffectorIndex = 12 #8
 pandaNumDofs = 7
 
 ul = np.array([0.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973])
@@ -46,15 +46,17 @@ class PandaSim(object):
             if (jointType == self.bullet_client.JOINT_REVOLUTE):
                 self.bullet_client.resetJointState(self.robot_id, j, jointPositions[index])
                 index=index+1
+        self.__prevPose = self.bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
     def reset(self):
         pass
 
     def step(self):
         t = self.t
         self.t += 1./60.
-        pos = [0.5 + 0.2 * math.sin(1.5 * t),   0.,  0.24]
+        pos = [0.8 + 0.2 * math.sin(1.5 * t),   0.,  0.24]
         th = 0.2 * math.sin(2.5*t)
-        orn = self.bullet_client.getQuaternionFromEuler([math.pi,th,0.])
+        # orn = self.bullet_client.getQuaternionFromEuler([math.pi,th,0.])
+        orn = self.bullet_client.getQuaternionFromEuler([0.,th,math.pi])
         jointPoses = self.bullet_client.calculateInverseKinematics(self.robot_id,
                         pandaEndEffectorIndex, targetPosition=pos, targetOrientation=orn,
                         lowerLimits=ll,
@@ -64,4 +66,6 @@ class PandaSim(object):
         for i in range(pandaNumDofs):
             self.bullet_client.setJointMotorControl2(
                     self.robot_id, i, self.bullet_client.POSITION_CONTROL, jointPoses[i], force=5 * 240.)
-        pass
+        current_pos = self.bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
+        self.bullet_client.addUserDebugLine(self.__prevPose[4], current_pos[4], lineColorRGB=[0,1,0], lifeTime=1)
+        self.__prevPose = current_pos
