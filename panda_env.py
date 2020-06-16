@@ -53,14 +53,14 @@ class PandaSim(object):
         t = self.t
         self.t += 1./60.
         pos = [0.5 + 0.2 * math.sin(1.5 * t),   0.,  0.24]
-        th = 0.2 * math.sin(1.5*t)
+        th = 0.2 * math.sin(2.5*t)
         orn = self.bullet_client.getQuaternionFromEuler([math.pi,th,0.])
         jointPoses = self.bullet_client.calculateInverseKinematics(self.robot_id,
                         pandaEndEffectorIndex, targetPosition=pos, targetOrientation=orn,
                         lowerLimits=ll,
                         upperLimits=ul,
                         jointRanges=jr,
-                        restPoses=rp, maxNumIterations=20)
+                        restPoses=rp, maxNumIterations=5)
         for i in range(pandaNumDofs):
             self.bullet_client.setJointMotorControl2(
                     self.robot_id, i, self.bullet_client.POSITION_CONTROL, jointPoses[i], force=5 * 240.)
