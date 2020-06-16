@@ -53,7 +53,7 @@ class PandaSim(object):
     def step(self):
         t = self.t
         self.t += 1./60.
-        pos = [0.6 + 0.2 * math.sin(1.5 * t),   0.,  0.24]
+        pos = [0.6 + 0.2 * math.sin(1.5 * t),   0.,  0.34+0.15*math.sin(2.5*t)]
         th = 0.2 * math.sin(2.5*t)
         # orn = self.bullet_client.getQuaternionFromEuler([math.pi,th,0.])
         orn = self.bullet_client.getQuaternionFromEuler([0.,th,math.pi])
