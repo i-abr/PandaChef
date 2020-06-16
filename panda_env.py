@@ -13,7 +13,7 @@ ll = np.array([-0.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973])
 #joint ranges for null space (todo: set them to proper range)
 jr = ul-ll
 #restposes for null space
-jointPositions=[0., 0.458, 0., -2.24, 0., 2.66, 2.32, 0.02, 0.02]
+jointPositions=[0., 0.258, 0., -2.24, 0., 2.66, 0., 0.02, 0.02]
 rp = jointPositions
 
 class PandaSim(object):

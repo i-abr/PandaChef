@@ -198,12 +198,16 @@
       <geometry>
         <mesh filename="package://meshes/collision/link7.obj"/>
       </geometry>
+      <!-- added transform below to rectify safety controller collision-->
+      <origin rpy="0 0 0.785398163397" xyz="0 0 0"/>
       <material name="panda_white"/>
     </visual>
     <collision>
       <geometry>
         <mesh filename="package://meshes/collision/link7.obj"/>
       </geometry>
+      <!-- added transform below to rectify safety controller collision-->
+      <origin rpy="0 0 0.785398163397" xyz="0 0 0"/>
       <material name="panda_white"/>
     </collision>
   </link>
@@ -231,7 +235,8 @@
   <joint name="panda_hand_joint" type="fixed">
     <parent link="panda_link8"/>
     <child link="panda_hand"/>
-    <origin rpy="0 0 -0.785398163397" xyz="0 0 0"/>
+    <!-- <origin rpy="0 0 -0.785398163397" xyz="0 0 0"/> -->
+    <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
   <link name="panda_hand">
   	<inertial>
