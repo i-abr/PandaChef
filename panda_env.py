@@ -61,6 +61,18 @@ class PandaChefEnv(object):
         self.__prevPose = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
         bullet_client.resetBasePositionAndOrientation(self.pizza_id, init_pizza_pose, [0.,0.,0.,1.])
         bullet_client.resetBaseVelocity(self.pizza_id, np.zeros(3), np.zeros(3))
+
+    def get_reward(self, ee_state, pizza_state):
+        ee_pos = np.array(ee_state[4])
+        ee_orn = ee_state[5]
+        pizza_pos, pizza_orn = pizza_state[0]
+        pizza_pos = np.array(pizza_pos)
+        pizza_linear_vel, pizza_angular_vel = pizza_state[1]
+
+        catch_rew = -np.linalg.norm(ee_pos-pizza_pos)
+        flip_rew = pizza_angular_vel[1]
+        return catch_rew + flip_rew
+
     def step(self, action):
         # dcmd = self.action_space.sample()
         dcmd = np.clip(action, -1,1)
@@ -80,5 +92,20 @@ class PandaChefEnv(object):
                 self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=1 * 240.)
         for _ in range(self._frame_skip):
             bullet_client.stepSimulation()
-        current_pos = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
-        self._set_cmd = new_cmd
+        ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
+        pizza_config  = bullet_client.getBasePositionAndOrientation(self.pizza_id)
+        pizza_vel   = bullet_client.getBaseVelocity(self.pizza_id)
+        reward      = self.get_reward(ee_state, (pizza_config, pizza_vel))
+        self._set_cmd = new_cmd.copy()
+
+        ee_pos = np.array(ee_state[4])
+        ee_orn = np.array(ee_state[5])
+        pizza_pos = np.array(pizza_config[0])
+        pizza_orn = np.array(pizza_config[1])
+        pizza_linear_vel = np.array(pizza_vel[0])
+        pizza_angular_vel = np.array(pizza_vel[1])
+        state = np.concatenate([ee_pos, ee_orn, pizza_pos, pizza_orn, pizza_linear_vel, pizza_angular_vel])
+        done = False
+        if np.linalg.norm(ee_pos-pizza_pos)>1:
+            done = True
+        return state, reward, done, {}
