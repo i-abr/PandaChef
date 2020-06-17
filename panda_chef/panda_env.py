@@ -42,14 +42,14 @@ class PandaChefEnv(object):
         bullet_client.setGravity(0., 0., -9.81)
         flags = bullet_client.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         self.floor_id = bullet_client.loadURDF("plane.urdf", np.array([0.,0.,0.]), flags=flags, useFixedBase=True)
-        self.robot_id = bullet_client.loadURDF("./franka_panda_chef/panda_chef.urdf", np.array([0,0,0]), useFixedBase=True, flags=flags)
-        self.pizza_id = bullet_client.loadURDF('./objects/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
+        self.robot_id = bullet_client.loadURDF("./urdf/panda_chef.urdf", np.array([0,0,0]), useFixedBase=True, flags=flags)
+        self.pizza_id = bullet_client.loadURDF('./urdf/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
         self.low_bnds = np.array([0.4, 0.1, -0.5])
         self.high_bnds = np.array([0.8, 0.7, 0.5])
         self._set_cmd = (self.high_bnds+self.low_bnds)/2.0
         self._past_ee_pos = None
-        self.action_scale = np.array([3.,3.,3.])
-        # self.action_scale = np.array([120,120,22])
+        # self.action_scale = np.array([3.,3.,3.])
+        self.action_scale = np.array([120,120,22])
         self.action_space = Box(low=np.array([-1,-1., -1.]), high=np.array([1., 1., 1.]))
         self.reset()
 
@@ -126,9 +126,9 @@ class PandaChefEnv(object):
         for i in range(pandaNumDofs):
             if i in jnt_ctrl_idx:
                 bullet_client.setJointMotorControl2(
-                    self.robot_id, i, bullet_client.VELOCITY_CONTROL, targetVelocity=cmd[ctrl_idx], force=87)
-                # bullet_client.setJointMotorControl2(
-                #     self.robot_id, i, bullet_client.TORQUE_CONTROL, force=cmd[ctrl_idx])
+                    self.robot_id, i, bullet_client.VELOCITY_CONTROL, targetVelocity=cmd[ctrl_idx], force=0)
+                bullet_client.setJointMotorControl2(
+                    self.robot_id, i, bullet_client.TORQUE_CONTROL, force=cmd[ctrl_idx])
                 ctrl_idx += 1
             # else:
             #     bullet_client.setJointMotorControl2(
