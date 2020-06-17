@@ -23,7 +23,7 @@ rp = jointPositions
 init_pizza_pose = np.array([0.8, 0., 0.3])
 
 class PandaChefEnv(object):
-    def __init__(self, render=False, time_step = 0.002, frame_skip=5):
+    def __init__(self, render=False, time_step = 0.002, frame_skip=2):
         self._time_step = time_step
         self._frame_skip = frame_skip
         self._render = render
@@ -41,11 +41,15 @@ class PandaChefEnv(object):
         self.low_bnds = np.array([0.4, 0.1, -0.5])
         self.high_bnds = np.array([0.8, 0.7, 0.5])
         self._set_cmd = (self.high_bnds+self.low_bnds)/2.0
-        self.action_scale = np.array([0.1,0.1,0.1])
+        self.action_scale = np.array([0.1,0.1,0.1])*2
         self.action_space = Box(low=np.array([-1,-1., -1.]), high=np.array([1., 1., 1.]))
         self.reset()
 
+        obs = self.get_obs()
+        self.observation_space = Box(low=-np.inf, high=np.inf, shape=obs.shape)
+
     def reset(self):
+        self._set_cmd = (self.high_bnds+self.low_bnds)/2.0
         index=0
         for j in range(bullet_client.getNumJoints(self.robot_id)):
             bullet_client.changeDynamics(self.robot_id, j, linearDamping=0, angularDamping=0.1)
@@ -61,8 +65,9 @@ class PandaChefEnv(object):
         self.__prevPose = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
         bullet_client.resetBasePositionAndOrientation(self.pizza_id, init_pizza_pose, [0.,0.,0.,1.])
         bullet_client.resetBaseVelocity(self.pizza_id, np.zeros(3), np.zeros(3))
+        return self.get_obs()
 
-    def get_reward(self, ee_state, pizza_state):
+    def get_reward(self, ee_state, pizza_state, action):
         ee_pos = np.array(ee_state[4])
         ee_orn = ee_state[5]
         pizza_pos, pizza_orn = pizza_state[0]
@@ -70,14 +75,26 @@ class PandaChefEnv(object):
         pizza_linear_vel, pizza_angular_vel = pizza_state[1]
 
         catch_rew = -np.linalg.norm(ee_pos-pizza_pos)
-        flip_rew = pizza_angular_vel[1]
-        return catch_rew + flip_rew
+        flip_rew = -pizza_angular_vel[1]
+        return catch_rew + flip_rew - np.linalg.norm(action)
+
+    def get_obs(self):
+        ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
+        pizza_config  = bullet_client.getBasePositionAndOrientation(self.pizza_id)
+        pizza_vel   = bullet_client.getBaseVelocity(self.pizza_id)
+        ee_pos = np.array(ee_state[4])
+        ee_orn = np.array(ee_state[5])
+        pizza_pos = np.array(pizza_config[0])
+        pizza_orn = np.array(pizza_config[1])
+        pizza_linear_vel = np.array(pizza_vel[0])
+        pizza_angular_vel = np.array(pizza_vel[1])
+        obs = np.concatenate([pizza_pos-ee_pos, pizza_orn-ee_orn,ee_pos, pizza_pos, ee_orn, pizza_orn,  pizza_linear_vel, pizza_angular_vel])
+        return obs
 
     def step(self, action):
         # dcmd = self.action_space.sample()
         dcmd = np.clip(action, -1,1)
         new_cmd = np.clip(self._set_cmd + dcmd * self.action_scale, self.low_bnds, self.high_bnds)
-        new_cmd = 0.5 * new_cmd + 0.5 * self._set_cmd
         pos = [new_cmd[0], 0, new_cmd[1]]
         orn = bullet_client.getQuaternionFromEuler([0.,new_cmd[2], np.pi])
         jointPoses = bullet_client.calculateInverseKinematics(self.robot_id,
@@ -89,23 +106,17 @@ class PandaChefEnv(object):
                         maxNumIterations=5)
         for i in range(pandaNumDofs):
             bullet_client.setJointMotorControl2(
-                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=1 * 240.)
+                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=2 * 240.)
         for _ in range(self._frame_skip):
             bullet_client.stepSimulation()
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
         pizza_config  = bullet_client.getBasePositionAndOrientation(self.pizza_id)
         pizza_vel   = bullet_client.getBaseVelocity(self.pizza_id)
-        reward      = self.get_reward(ee_state, (pizza_config, pizza_vel))
+        reward      = self.get_reward(ee_state, (pizza_config, pizza_vel), action)
         self._set_cmd = new_cmd.copy()
-
-        ee_pos = np.array(ee_state[4])
-        ee_orn = np.array(ee_state[5])
-        pizza_pos = np.array(pizza_config[0])
-        pizza_orn = np.array(pizza_config[1])
-        pizza_linear_vel = np.array(pizza_vel[0])
-        pizza_angular_vel = np.array(pizza_vel[1])
-        state = np.concatenate([ee_pos, ee_orn, pizza_pos, pizza_orn, pizza_linear_vel, pizza_angular_vel])
+        obs = self.get_obs()
         done = False
-        if np.linalg.norm(ee_pos-pizza_pos)>1:
+        if obs[2]<-0.05 or np.abs(obs[0])>0.3 or np.abs(obs[2]) > 0.3:
+            reward = -100
             done = True
-        return state, reward, done, {}
+        return obs, reward, done, {}
