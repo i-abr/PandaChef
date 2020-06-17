@@ -77,7 +77,8 @@
     <parent link="panda_link1"/>
     <child link="panda_link2"/>
     <axis xyz="0 0 1"/>
-    <limit effort="87" lower="-1.8326" upper="1.8326" velocity="2.1750"/>
+    <!-- <limit effort="87" lower="-1.8326" upper="1.8326" velocity="2.1750"/> -->
+    <limit effort="87" lower="-.8326" upper=".8326" velocity="2.1750"/>
   </joint>
   <link name="panda_link3">
 	  <inertial>
@@ -405,7 +406,7 @@
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </collision>
     <inertial>
-      <mass value="0.5"/>  <!-- mr^2 = 0.5*0.12^2 = 0.0072 for Z axis, lighter along other axis -->
+      <mass value="0.1"/>  <!-- mr^2 = 0.5*0.12^2 = 0.0072 for Z axis, lighter along other axis -->
       <inertia ixx="0.005" iyy="0.005" izz="0.0072"/>
     </inertial>
   </link>
