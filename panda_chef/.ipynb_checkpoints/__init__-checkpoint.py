@@ -1,1 +1,1 @@
-from .panda_env import PandaChefEnv
+from .pandaIK_env import PandaChefEnv

@@ -78,9 +78,9 @@ class PandaChefEnv(object):
         pizza_pos = np.array(pizza_pos)
         pizza_linear_vel, pizza_angular_vel = pizza_state[1]
 
-        catch_rew = -np.sum((ee_pos-pizza_pos)**2)
-        flip_rew = -pizza_angular_vel[1] * (0.95**self.t)
-        return catch_rew + flip_rew - np.sum((action)**2)
+        catch_rew = -np.linalg.norm(ee_pos-pizza_pos)
+        flip_rew = -pizza_angular_vel[1]
+        return catch_rew + flip_rew - np.linalg.norm(action)
 
     def get_obs(self):
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
@@ -92,8 +92,7 @@ class PandaChefEnv(object):
         pizza_orn = np.array(pizza_config[1])
         pizza_linear_vel = np.array(pizza_vel[0])
         pizza_angular_vel = np.array(pizza_vel[1])
-        obs = np.concatenate([pizza_pos-ee_pos, pizza_orn-ee_orn,ee_pos,
-                    pizza_pos, ee_orn, pizza_orn,  pizza_linear_vel, pizza_angular_vel])
+        obs = np.concatenate([pizza_pos-ee_pos, pizza_orn-ee_orn,ee_pos, pizza_pos, ee_orn, pizza_orn,  pizza_linear_vel, pizza_angular_vel])
         return obs
 
     def step(self, action):
@@ -121,8 +120,7 @@ class PandaChefEnv(object):
         self._set_cmd = new_cmd.copy()
         obs = self.get_obs()
         done = False
-        if obs[2]<-0.05 or np.abs(obs[0])>0.5 or np.abs(obs[2]) > 0.3:
-            # reward = -100
+        if obs[2]<-0.05 or np.abs(obs[0])>0.3 or np.abs(obs[2]) > 0.3:
+            reward = -100
             done = True
-        self.t += 1
         return obs, reward, done, {}
