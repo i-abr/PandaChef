@@ -80,7 +80,7 @@ class PandaChefEnv(object):
 
         catch_rew = -np.sum((ee_pos-pizza_pos)**2)
         flip_rew = -pizza_angular_vel[1] * (0.95**self.t)
-        return catch_rew + flip_rew - np.sum((action)**2)
+        return catch_rew + 0.1*flip_rew - 1e-3*np.sum((action)**2)
 
     def get_obs(self):
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
