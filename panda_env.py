@@ -23,12 +23,13 @@ rp = jointPositions
 init_pizza_pose = np.array([0.8, 0., 0.3])
 
 class PandaChefEnv(object):
-    def __init__(self, render=False, time_step = 0.002, frame_skip=2):
+    def __init__(self, render=False, time_step = 1/100., frame_skip=1):
         self._time_step = time_step
         self._frame_skip = frame_skip
         self._render = render
         if render:
             bullet_client.connect(bullet_client.GUI)
+            bullet_client.configureDebugVisualizer(bullet_client.COV_ENABLE_GUI, 0)
         else:
             bullet_client.connect(bullet_client.DIRECT)
         bullet_client.setAdditionalSearchPath(pd.getDataPath())
@@ -106,7 +107,7 @@ class PandaChefEnv(object):
                         maxNumIterations=5)
         for i in range(pandaNumDofs):
             bullet_client.setJointMotorControl2(
-                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=2 * 240.)
+                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=240.)
         for _ in range(self._frame_skip):
             bullet_client.stepSimulation()
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)

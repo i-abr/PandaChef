@@ -28,7 +28,7 @@ target_flip_orn = np.array(bullet_client.getQuaternionFromEuler([0., -np.pi,0.])
 jnt_ctrl_idx = [1,3,5]
 
 class PandaChefEnv(object):
-    def __init__(self, render=False, time_step = 1./60.,frame_skip=1):
+    def __init__(self, render=False, time_step = 1./300.,frame_skip=2):
         self._time_step = time_step
         self._frame_skip = frame_skip
         self._render = render
@@ -42,14 +42,14 @@ class PandaChefEnv(object):
         bullet_client.setGravity(0., 0., -9.81)
         flags = bullet_client.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         self.floor_id = bullet_client.loadURDF("plane.urdf", np.array([0.,0.,0.]), flags=flags, useFixedBase=True)
-        self.robot_id = bullet_client.loadURDF("./franka_panda_chef/panda_chef.urdf", np.array([0,0,0]), useFixedBase=True, flags=flags)
-        self.pizza_id = bullet_client.loadURDF('./objects/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
+        self.robot_id = bullet_client.loadURDF("./urdf/panda_chef.urdf", np.array([0,0,0]), useFixedBase=True, flags=flags)
+        self.pizza_id = bullet_client.loadURDF('./urdf/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
         self.low_bnds = np.array([0.4, 0.1, -0.5])
         self.high_bnds = np.array([0.8, 0.7, 0.5])
         self._set_cmd = (self.high_bnds+self.low_bnds)/2.0
         self._past_ee_pos = None
-        self.action_scale = np.array([2.,2.,2.])
-        # self.action_scale = np.array([120,120,22])
+        # self.action_scale = np.array([3.,3.,3.])
+        self.action_scale = np.array([120,120,22])
         self.action_space = Box(low=np.array([-1,-1., -1.]), high=np.array([1., 1., 1.]))
         self.reset()
 
@@ -64,7 +64,7 @@ class PandaChefEnv(object):
         bullet_client.changeDynamics(self.pizza_id, -1, linearDamping=0.1, angularDamping=0.2)
         index=0
         for j in range(bullet_client.getNumJoints(self.robot_id)):
-            bullet_client.changeDynamics(self.robot_id, j, linearDamping=0, angularDamping=0.1)
+            # bullet_client.changeDynamics(self.robot_id, j, linearDamping=0, angularDamping=0)
             info = bullet_client.getJointInfo(self.robot_id, j)
             jointName = info[1]
             jointType = info[2]
@@ -126,9 +126,9 @@ class PandaChefEnv(object):
         for i in range(pandaNumDofs):
             if i in jnt_ctrl_idx:
                 bullet_client.setJointMotorControl2(
-                    self.robot_id, i, bullet_client.VELOCITY_CONTROL, targetVelocity=cmd[ctrl_idx], force=47)
-                # bullet_client.setJointMotorControl2(
-                #     self.robot_id, i, bullet_client.TORQUE_CONTROL, force=cmd[ctrl_idx])
+                    self.robot_id, i, bullet_client.VELOCITY_CONTROL, targetVelocity=cmd[ctrl_idx], force=0)
+                bullet_client.setJointMotorControl2(
+                    self.robot_id, i, bullet_client.TORQUE_CONTROL, force=cmd[ctrl_idx])
                 ctrl_idx += 1
             # else:
             #     bullet_client.setJointMotorControl2(
