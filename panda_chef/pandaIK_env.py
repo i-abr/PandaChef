@@ -13,9 +13,9 @@ ikSolver                = 0
 pandaEndEffectorIndex   = 12 #8
 pandaNumDofs            = 7
 
-ul = np.array([0.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973])
+ul = np.array([1.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973])
 #upper limits for null space (todo: set them to proper range)
-ll = np.array([-0.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973])
+ll = np.array([-1.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973])
 #joint ranges for null space (todo: set them to proper range)
 jr = ul-ll
 #restposes for null space
@@ -41,12 +41,15 @@ class PandaChefEnv(object):
         bullet_client.loadURDF("plane.urdf", np.array([0.,0.,0.]), flags=flags, useFixedBase=True)
         self.robot_id = bullet_client.loadURDF(dir_path+'/urdf/panda_chef.urdf', np.array([0,0,0]), useFixedBase=True, flags=flags)
         self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
-        self.low_bnds = np.array([0.4, 0.1, -0.4])
-        self.high_bnds = np.array([0.9, 0.7, 0.4])
+        self.low_bnds = np.array([0.4, 0.1, -0.5])
+        self.high_bnds = np.array([0.9, 0.4, 0.5])
         self._set_cmd = (self.high_bnds+self.low_bnds)/2.0
-        self._center_pnt = np.array([self._set_cmd[0], 0., self._set_cmd[1]])
-        # self.action_scale = np.array([0.1,0.1,0.2])
-        self.action_scale = self.high_bnds-self.low_bnds
+        center_pnt = self._set_cmd.copy()
+        self._center_pnt = np.array([center_pnt[0].copy(), 0., center_pnt[1].copy()])
+        self.action_scale = np.array([0.01,0.01,0.1])*2
+#         self.action_scale = self.high_bnds-self.low_bnds
+#         self.action_scale /= 2.
+#         self.action_scale *= 0.1
         self.action_space = Box(low=np.array([-1,-1., -1.]), high=np.array([1., 1., 1.]))
         bullet_client.addUserDebugLine([0.4, 0., 0.1], [0.9, 0., 0.1])
         bullet_client.addUserDebugLine([0.9, 0., 0.1], [0.9, 0., 0.7])
@@ -64,7 +67,7 @@ class PandaChefEnv(object):
         self._set_cmd = (self.high_bnds+self.low_bnds)/2.0
         index=0
         for j in range(bullet_client.getNumJoints(self.robot_id)):
-            bullet_client.changeDynamics(self.robot_id, j, linearDamping=0, angularDamping=0.1)
+            bullet_client.changeDynamics(self.robot_id, j, linearDamping=0, angularDamping=0.1, restitution=0.)
             info = bullet_client.getJointInfo(self.robot_id, j)
             jointName = info[1]
             jointType = info[2]
@@ -85,10 +88,10 @@ class PandaChefEnv(object):
         pizza_pos, pizza_orn = pizza_state[0]
         pizza_pos = np.array(pizza_pos)
         pizza_linear_vel, pizza_angular_vel = pizza_state[1]
-
+        pizza_linear_vel = np.array(pizza_linear_vel)
         catch_rew = -np.sum((ee_pos-pizza_pos)**2)
         flip_rew = -pizza_angular_vel[1] * (0.95**self.t)
-        return catch_rew + 0.1*flip_rew - 1e-3*np.sum((action)**2)
+        return catch_rew + flip_rew - 1e-3*np.sum((action)**2) #- 1e-3*np.sum(pizza_linear_vel**2)
 
     def get_obs(self):
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex, computeLinkVelocity=1)
@@ -109,8 +112,8 @@ class PandaChefEnv(object):
         return obs
 
     def step(self, action):
-        self._filt_cmd = self._filt_cmd*0.8 + 0.2*np.clip(action, -1,1)
-        dcmd = self._filt_cmd
+        dcmd = np.clip(action, -1,1)
+#         new_cmd = self._set_cmd + dcmd * self.action_scale
         new_cmd = np.clip(self._set_cmd + dcmd * self.action_scale, self.low_bnds, self.high_bnds)
         pos = [new_cmd[0], 0, new_cmd[1]]
         orn = bullet_client.getQuaternionFromEuler([0.,new_cmd[2], np.pi])
@@ -130,12 +133,12 @@ class PandaChefEnv(object):
         pizza_config  = bullet_client.getBasePositionAndOrientation(self.pizza_id)
         pizza_vel   = bullet_client.getBaseVelocity(self.pizza_id)
         reward      = self.get_reward(ee_state, (pizza_config, pizza_vel), action)
-        # self._set_cmd = new_cmd.copy()
+        self._set_cmd = new_cmd.copy()
         obs = self.get_obs()
         done = False
         # if obs[2]<-0.05 or np.abs(obs[0])>0.5 or np.abs(obs[2]) > 0.3:
         #     done = True
-        if np.abs(obs[0]) > 0.3 or np.abs(obs[2]) > 0.3:
+        if np.abs(obs[0]) > 0.3: #or obs[2] > 0.6 or obs[2] < -0.3:
             done = True
         self.t += 1
         return obs, reward, done, {}
