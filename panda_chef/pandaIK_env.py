@@ -6,6 +6,7 @@ from gym.spaces import Box
 import pybullet as bullet_client
 import pybullet_data as pd
 import os
+from copy import deepcopy
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 useNullSpace            = 1
@@ -22,7 +23,9 @@ jr = ul-ll
 jointPositions=[0., 0., 0., -2.5, 0., 2.5, 0., 0.02, 0.02]
 rp = jointPositions
 
+# positio and orientation
 init_pizza_pose = np.array([0.7, 0., 0.2])
+zero_ee_pose    = (np.array([0.7, 0., 0.13]), np.array([0.,0., np.pi]))
 
 class PandaChefEnv(object):
     def __init__(self, render=False, time_step = 1/100., frame_skip=1):
@@ -39,22 +42,28 @@ class PandaChefEnv(object):
         bullet_client.setGravity(0., 0., -9.81)
         flags = bullet_client.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         bullet_client.loadURDF("plane.urdf", np.array([0.,0.,0.]), flags=flags, useFixedBase=True)
-        self.robot_id = bullet_client.loadURDF(dir_path+'/urdf/panda_chef.urdf', np.array([0,0,0]), useFixedBase=True, flags=flags)
-        self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
-        self.low_bnds = np.array([0.4, 0.1, -0.5])
-        self.high_bnds = np.array([0.9, 0.4, 0.5])
-        self._set_cmd = (self.high_bnds+self.low_bnds)/2.0
+        self.robot_id = bullet_client.loadURDF(dir_path+'/urdf/panda_chef.urdf',
+                                        np.array([0,0,0]), useFixedBase=True, flags=flags)
+        self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/sphere_with_restitution.urdf',
+                                        init_pizza_pose, flags=flags)
+
+        # setting up the bounds for the action space
+        self._set_cmd = deepcopy(zero_ee_pose)
+        self._bnds = np.array([0.1,0.1,0.1]*6)
+
         center_pnt = self._set_cmd.copy()
         self._center_pnt = np.array([center_pnt[0].copy(), 0., center_pnt[1].copy()])
-        self.action_scale = np.array([0.01,0.01,0.1])*2
+        self.action_scale = np.array([0.01]*3 + [0.1]*3)*2
 #         self.action_scale = self.high_bnds-self.low_bnds
 #         self.action_scale /= 2.
 #         self.action_scale *= 0.1
-        self.action_space = Box(low=np.array([-1,-1., -1.]), high=np.array([1., 1., 1.]))
-        bullet_client.addUserDebugLine([0.4, 0., 0.1], [0.9, 0., 0.1])
-        bullet_client.addUserDebugLine([0.9, 0., 0.1], [0.9, 0., 0.7])
-        bullet_client.addUserDebugLine([0.9, 0., 0.7], [0.4, 0., 0.7])
-        bullet_client.addUserDebugLine([0.4, 0., 0.7], [0.4, 0., 0.1])
+        self.action_space = Box(low=-np.ones(6),
+                                high=np.ones(6))
+
+        # bullet_client.addUserDebugLine([0.4, 0., 0.1], [0.9, 0., 0.1])
+        # bullet_client.addUserDebugLine([0.9, 0., 0.1], [0.9, 0., 0.7])
+        # bullet_client.addUserDebugLine([0.9, 0., 0.7], [0.4, 0., 0.7])
+        # bullet_client.addUserDebugLine([0.4, 0., 0.7], [0.4, 0., 0.1])
 
         self.reset()
 
@@ -90,7 +99,7 @@ class PandaChefEnv(object):
         pizza_linear_vel, pizza_angular_vel = pizza_state[1]
         pizza_linear_vel = np.array(pizza_linear_vel)
         catch_rew = -np.sum((ee_pos-pizza_pos)**2)
-        flip_rew = -pizza_angular_vel[1] * (0.95**self.t)
+        flip_rew = -np.clip(pizza_angular_vel[1], -5,5) #* (0.95**self.t)
         return catch_rew + flip_rew - 1e-3*np.sum((action)**2) #- 1e-3*np.sum(pizza_linear_vel**2)
 
     def get_obs(self):
@@ -117,16 +126,16 @@ class PandaChefEnv(object):
         new_cmd = np.clip(self._set_cmd + dcmd * self.action_scale, self.low_bnds, self.high_bnds)
         pos = [new_cmd[0], 0, new_cmd[1]]
         orn = bullet_client.getQuaternionFromEuler([0.,new_cmd[2], np.pi])
+
+        # get IK EE pose
         jointPoses = bullet_client.calculateInverseKinematics(self.robot_id,
                         pandaEndEffectorIndex, targetPosition=pos, targetOrientation=orn,
-                        lowerLimits=ll,
-                        upperLimits=ul,
-                        jointRanges=jr,
-                        restPoses=rp,
+                        lowerLimits=ll, upperLimits=ul, jointRanges=jr,restPoses=rp,
                         maxNumIterations=5)
+
         for i in range(pandaNumDofs):
             bullet_client.setJointMotorControl2(
-                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=140.)
+                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=70.)
         for _ in range(self._frame_skip):
             bullet_client.stepSimulation()
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)

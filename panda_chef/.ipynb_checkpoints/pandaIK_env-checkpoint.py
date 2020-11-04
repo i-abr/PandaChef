@@ -90,7 +90,7 @@ class PandaChefEnv(object):
         pizza_linear_vel, pizza_angular_vel = pizza_state[1]
         pizza_linear_vel = np.array(pizza_linear_vel)
         catch_rew = -np.sum((ee_pos-pizza_pos)**2)
-        flip_rew = -pizza_angular_vel[1] * (0.95**self.t)
+        flip_rew = -pizza_angular_vel[1] #* (0.95**self.t)
         return catch_rew + flip_rew - 1e-3*np.sum((action)**2) #- 1e-3*np.sum(pizza_linear_vel**2)
 
     def get_obs(self):
