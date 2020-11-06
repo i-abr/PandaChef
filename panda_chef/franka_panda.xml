@@ -11,7 +11,7 @@
     <include file="assets/assets.xml"/>
 
     <asset>
-        <mesh name='pan' file='meshes/pan.stl' scale='0.7 0.7 0.7'/>
+        <mesh name='pan' file='meshes/pan.stl' scale='0.002 0.002 0.002'/>
     </asset>
 
 
@@ -20,7 +20,7 @@
     <worldbody>
         <include file="assets/chain0.xml"/>
 
-        <body name='pancake' pos='0.9 0 1'>
+        <body name='pancake' pos='0.75 0.08 1'>
             <joint type='free'/>
             <geom name='pancake' type='cylinder' size='0.1 0.01'/>
         </body>

@@ -100,8 +100,9 @@
                                     </body>
 
                                     <body name='pan' pos='0 0 0.2' quat="0.92388 0 0 -0.382683">
+
                                         <inertial pos='0 0 0' mass='0.01' diaginertia='0.1 0.1 0.1'/>
-                                        <geom type='mesh' mesh='pan' pos='0.15 0 0' euler='0 3.1415 0'/>
+                                        <geom type='mesh' mesh='pan' pos='0.15 0 0' euler='-1.57079632679 0 0'/>
                                     </body>
                                 </body>
                             </body>
