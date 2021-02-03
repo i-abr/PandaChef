@@ -9,7 +9,7 @@
   <visual>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <geometry>
-      <mesh filename="package://meshes/pan_tefal/pan_tefal.obj"/>
+      <mesh filename="package://meshes/pan_tefal/pan_tefal.stl"/>
     </geometry>
   </visual>
   <visual>  <!-- handle -->
@@ -35,43 +35,43 @@
   </collision>
   <collision>
     <geometry>
-      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision01.obj"/>
+      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision01.stl"/>
     </geometry>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </collision>
   <collision>
     <geometry>
-      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision02.obj"/>
+      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision02.stl"/>
     </geometry>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </collision>
   <collision>
     <geometry>
-      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision03.obj"/>
+      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision03.stl"/>
     </geometry>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </collision>
   <collision>
     <geometry>
-      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision04.obj"/>
+      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision04.stl"/>
     </geometry>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </collision>
   <collision>
     <geometry>
-      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision05.obj"/>
+      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision05.stl"/>
     </geometry>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </collision>
   <collision>
     <geometry>
-      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision06.obj"/>
+      <mesh filename="package://meshes/pan_tefal/pan_tefal-collision06.stl"/>
     </geometry>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </collision>
   <inertial>
     <mass value="0.1"/>  <!-- mr^2 = 0.5*0.12^2 = 0.0072 for Z axis, lighter along other axis -->
-    <inertia ixx="0.005" iyy="0.005" izz="0.0072"/>
+    <inertia ixx="0.005" ixy='0.005' ixz='0.005' iyz='0.005' iyy="0.005" izz="0.0072"/>
   </inertial>
 </link>
 </robot>
