@@ -45,14 +45,14 @@ class PandaChefEnv(object):
         bullet_client.loadURDF("plane.urdf", np.array([0.,0.,0.]), flags=flags, useFixedBase=True)
         self.robot_id = bullet_client.loadURDF(dir_path+'/urdf/panda_chef.urdf',
                                         np.array([0,0,0]), useFixedBase=True, flags=flags)
-        self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/planar_disk.urdf',
-                                        init_pizza_pose, flags=flags)
-        # self.pizza_id = bullet_client.loadMJCF(dir_path+'/cylinder.xml',  flags=flags)[0]
-        # for j in range(bullet_client.getNumJoints(self.pizza_id)):
+#         self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/planar_disk.urdf',
+#                                         init_pizza_pose, flags=flags)
+        self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
+#         for j in range(bullet_client.getNumJoints(self.pizza_id)):
         #     bullet_client.setJointMotorControl2(self.pizza_id, j ,bullet_client.VELOCITY_CONTROL, force=0)
 
         # set up constraints on pizza
-        bullet_client.createConstraint(self.pizza_id, -1, -1, -1, bullet_client.JOINT_FIXED, [0,1,0], [0,0,0], [0,0,0])
+#         bullet_client.createConstraint(self.pizza_id, -1, -1, -1, bullet_client.JOINT_FIXED, [0,1,0], [0,0,0], [0,0,0])
 
 
         # setting up the bounds for the action space
@@ -94,10 +94,10 @@ class PandaChefEnv(object):
                 bullet_client.resetJointState(self.robot_id, j, jointPositions[index])
                 index=index+1
         self.__prevPose = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
-        for j in range(bullet_client.getNumJoints(self.pizza_id)):
-            bullet_client.resetJointState(self.pizza_id, j, init_pizza_state[j])
-        # bullet_client.resetBasePositionAndOrientation(self.pizza_id, init_pizza_pose, [0.,0.,0.,1.])
-        # bullet_client.resetBaseVelocity(self.pizza_id, np.zeros(3), np.zeros(3))
+#         for j in range(bullet_client.getNumJoints(self.pizza_id)):
+#             bullet_client.resetJointState(self.pizza_id, j, init_pizza_state[j])
+        bullet_client.resetBasePositionAndOrientation(self.pizza_id, init_pizza_pose, [0.,0.,0.,1.])
+        bullet_client.resetBaseVelocity(self.pizza_id, np.zeros(3), np.zeros(3))
         return self.get_obs()
 
     def get_reward(self, ee_state, pizza_state, action):
