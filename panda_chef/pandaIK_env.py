@@ -28,8 +28,15 @@ init_pizza_pose = np.array([0.7, 0., 0.2])
 init_pizza_state = np.array([0.7, 0.2, 0.])
 zero_ee_pose    = (np.array([0.7, 0., 0.13]), np.array([0.,0., np.pi]))
 
+init_pancake_rot = bullet_client.getQuaternionFromEuler([0.,np.pi,np.pi])
+
+def draw_coordinate(id, **kwargs):
+    bullet_client.addUserDebugLine([0,0,0],[0.1,0,0],[1,0,0],parentObjectUniqueId=id, lineWidth=5, **kwargs)
+    bullet_client.addUserDebugLine([0,0,0],[0,0.1,0],[0,1,0],parentObjectUniqueId=id, lineWidth=5, **kwargs)
+    bullet_client.addUserDebugLine([0,0,0],[0,0,0.1],[0,0,1],parentObjectUniqueId=id, lineWidth=5, **kwargs)
+
 class PandaChefEnv(object):
-    def __init__(self, render=False, time_step = 1/60., frame_skip=1):
+    def __init__(self, render=False, time_step = 1/100., frame_skip=1):
         self._time_step = time_step
         self._frame_skip = frame_skip
         self._render = render
@@ -45,15 +52,8 @@ class PandaChefEnv(object):
         bullet_client.loadURDF("plane.urdf", np.array([0.,0.,0.]), flags=flags, useFixedBase=True)
         self.robot_id = bullet_client.loadURDF(dir_path+'/urdf/panda_chef.urdf',
                                         np.array([0,0,0]), useFixedBase=True, flags=flags)
-#         self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/planar_disk.urdf',
-#                                         init_pizza_pose, flags=flags)
-        self.pizza_id = bullet_client.loadURDF(dir_path+'/urdf/sphere_with_restitution.urdf', init_pizza_pose, flags=flags)
-#         for j in range(bullet_client.getNumJoints(self.pizza_id)):
-        #     bullet_client.setJointMotorControl2(self.pizza_id, j ,bullet_client.VELOCITY_CONTROL, force=0)
-
-        # set up constraints on pizza
-#         bullet_client.createConstraint(self.pizza_id, -1, -1, -1, bullet_client.JOINT_FIXED, [0,1,0], [0,0,0], [0,0,0])
-
+        self.pancake_id = bullet_client.loadURDF(dir_path+'/urdf/sphere_with_restitution.urdf',
+                                        init_pizza_pose, init_pancake_rot, flags=flags)
 
         # setting up the bounds for the action space
         self._set_cmd = deepcopy(zero_ee_pose)
@@ -62,14 +62,23 @@ class PandaChefEnv(object):
         self.low_bnds = (self._set_cmd[0] - self._bnds[0], self._set_cmd[1] - self._bnds[1])
         self.high_bnds = (self._set_cmd[0] + self._bnds[0], self._set_cmd[1] + self._bnds[1])
 
-        self.action_scale = (np.array([0.1, 0., 0.1]), np.array([0., 0.7, 0.]))
-        self.action_space = Box(low=-np.ones(6),
-                                high=np.ones(6))
-        # bullet_client.setGravity(0,0,-9.81)
+        self.action_scale = (np.array([0.05, 0., 0.05]), np.array([0., 0.2, 0.]))
+        self.action_space = Box(low=-np.ones(6), high=np.ones(6))
+
         # bullet_client.addUserDebugLine([0.4, 0., 0.1], [0.9, 0., 0.1])
         # bullet_client.addUserDebugLine([0.9, 0., 0.1], [0.9, 0., 0.7])
         # bullet_client.addUserDebugLine([0.9, 0., 0.7], [0.4, 0., 0.7])
         # bullet_client.addUserDebugLine([0.4, 0., 0.7], [0.4, 0., 0.1])
+
+        # set up the coordinate sys for the pizza
+        # bullet_client.addUserDebugText("baseLink", [0,0,0.05],
+        #                     textColorRGB=[1,0,0],textSize=1.5,parentObjectUniqueId=self.pancake_id)
+        # created some coordinate systems for debugging
+        draw_coordinate(self.pancake_id)
+        draw_coordinate(self.robot_id)
+
+        # TODO: create coordinate for the target where you want the pancake to end up
+
 
         self.reset()
 
@@ -94,10 +103,9 @@ class PandaChefEnv(object):
                 bullet_client.resetJointState(self.robot_id, j, jointPositions[index])
                 index=index+1
         self.__prevPose = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
-#         for j in range(bullet_client.getNumJoints(self.pizza_id)):
-#             bullet_client.resetJointState(self.pizza_id, j, init_pizza_state[j])
-        bullet_client.resetBasePositionAndOrientation(self.pizza_id, init_pizza_pose, [0.,0.,0.,1.])
-        bullet_client.resetBaseVelocity(self.pizza_id, np.zeros(3), np.zeros(3))
+
+        bullet_client.resetBasePositionAndOrientation(self.pancake_id, init_pizza_pose, init_pancake_rot)
+        bullet_client.resetBaseVelocity(self.pancake_id, np.zeros(3), np.zeros(3))
         return self.get_obs()
 
     def get_reward(self, ee_state, pizza_state, action):
@@ -111,10 +119,11 @@ class PandaChefEnv(object):
         flip_rew = -np.clip(pizza_angular_vel[1],-5,5) #* (0.95**self.t)
         lin_vel_penalty = np.sum(pizza_linear_vel**2)
         return catch_rew + flip_rew - 1e-3*np.sum((action)**2) - lin_vel_penalty
+
     def get_obs(self):
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex, computeLinkVelocity=1)
-        pizza_config  = bullet_client.getBasePositionAndOrientation(self.pizza_id)
-        pizza_vel   = bullet_client.getBaseVelocity(self.pizza_id)
+        pizza_config  = bullet_client.getBasePositionAndOrientation(self.pancake_id)
+        pizza_vel   = bullet_client.getBaseVelocity(self.pancake_id)
         ee_pos = np.array(ee_state[4])
         ee_orn = np.array(ee_state[5])
         ee_linvel = np.array(ee_state[6])
@@ -150,8 +159,8 @@ class PandaChefEnv(object):
 
         # get the state for reward calculatin
         ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
-        pizza_config  = bullet_client.getBasePositionAndOrientation(self.pizza_id)
-        pizza_vel   = bullet_client.getBaseVelocity(self.pizza_id)
+        pizza_config  = bullet_client.getBasePositionAndOrientation(self.pancake_id)
+        pizza_vel   = bullet_client.getBaseVelocity(self.pancake_id)
         reward      = self.get_reward(ee_state, (pizza_config, pizza_vel), action)
         # self._set_cmd = new_cmd.copy()
         obs = self.get_obs()
@@ -162,3 +171,11 @@ class PandaChefEnv(object):
             done = True
         self.t += 1
         return obs, reward, done, {}
+
+
+if __name__ == '__main__':
+    env = PandaChefEnv(render=True)
+    env.reset()
+    while True:
+        env.step(env.action_space.sample())
+        time.sleep(0.01)

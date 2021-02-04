@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <robot name="urdf_robot">
-  <link name="baseLink">
+    <link name="baseLink">
   	<contact>
       <restitution value="0.0" />
       <rolling_friction value="0.01"/>
@@ -15,20 +15,20 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-				<mesh filename="textured_sphere_smooth.obj" scale="0.08 0.08 0.02"/>
-        <!-- cylinder radius="0.08" length="0.02"/-->
+				<!-- <mesh filename="textured_sphere_smooth.obj" scale="0.08 0.08 0.02"/> -->
+                <cylinder radius="0.08" length="0.02"/>
       </geometry>
       <material name="white">
-        <color rgba="1 1 1 1"/>
+          <color rgba="1 1 1 1"/>
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-	 <!-- sphere radius="0.02" -->
-		<mesh filename="textured_sphere_smooth.obj" scale="0.08 0.08 0.02"/>
-        <!--cylinder radius="0.08" length="0.02"/-->
-      </geometry>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+            <!-- sphere radius="0.02" -->
+            <!-- <mesh filename="textured_sphere_smooth.obj" scale="0.08 0.08 0.02"/> -->
+            <cylinder radius="0.08" length="0.02"/>
+        </geometry>
     </collision>
-  </link>
+    </link>
 </robot>
