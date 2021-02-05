@@ -36,7 +36,7 @@ def draw_coordinate(id, **kwargs):
     bullet_client.addUserDebugLine([0,0,0],[0,0,0.1],[0,0,1],parentObjectUniqueId=id, lineWidth=5, **kwargs)
 
 class PandaChefEnv(object):
-    def __init__(self, render=False, time_step = 1/100., frame_skip=1):
+    def __init__(self, render=False, time_step = 1/200., frame_skip=1):
         self._time_step = time_step
         self._frame_skip = frame_skip
         self._render = render
@@ -62,7 +62,7 @@ class PandaChefEnv(object):
         self.low_bnds = (self._set_cmd[0] - self._bnds[0], self._set_cmd[1] - self._bnds[1])
         self.high_bnds = (self._set_cmd[0] + self._bnds[0], self._set_cmd[1] + self._bnds[1])
 
-        self.action_scale = (np.array([0.05, 0., 0.05]), np.array([0., 0.2, 0.]))
+        self.action_scale = (np.array([0.05, 0., 0.05]), np.array([0., 0.7, 0.]))
         self.action_space = Box(low=-np.ones(6), high=np.ones(6))
 
         # bullet_client.addUserDebugLine([0.4, 0., 0.1], [0.9, 0., 0.1])
@@ -151,7 +151,7 @@ class PandaChefEnv(object):
         # make each motor go to correct joint pose
         for i in range(pandaNumDofs):
             bullet_client.setJointMotorControl2(
-                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=70.)
+                self.robot_id, i, bullet_client.POSITION_CONTROL, jointPoses[i], force=40.)
         # step the simulation forward
         for _ in range(self._frame_skip):
             bullet_client.stepSimulation()
@@ -161,7 +161,7 @@ class PandaChefEnv(object):
         # if obs[2]<-0.05 or np.abs(obs[0])>0.5 or np.abs(obs[2]) > 0.3:
         #     done = True
         if np.abs(obs[0]) > 0.3: #or obs[2] > 0.6 or obs[2] < -0.3:
-            done = True
+            done = False
         self.t += 1
         return obs, rew, done, {}
 
