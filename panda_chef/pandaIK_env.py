@@ -83,7 +83,7 @@ class PandaChefEnv(object):
 
         self.reset()
 
-        obs = self.get_rew_obs()
+        rew, obs = self.get_rew_obs()
         self.observation_space = Box(low=-np.inf, high=np.inf, shape=obs.shape)
 
     def reset(self):
@@ -107,19 +107,8 @@ class PandaChefEnv(object):
 
         bullet_client.resetBasePositionAndOrientation(self.pancake_id, init_pizza_pose, init_pancake_rot)
         bullet_client.resetBaseVelocity(self.pancake_id, np.zeros(3), np.zeros(3))
-        return self.get_rew_obs()
-
-    def get_reward(self, obs):
-        ee_pos = np.array(ee_state[4])
-        ee_orn = ee_state[5]
-        pizza_pos, pizza_orn = pizza_state[0]
-        pizza_pos = np.array(pizza_pos)
-        pizza_linear_vel, pizza_angular_vel = pizza_state[1]
-        pizza_linear_vel = np.array(pizza_linear_vel)
-        catch_rew = -np.sum((ee_pos-pizza_pos)**2)
-        flip_rew = -np.clip(pizza_angular_vel[1],-5,5) #* (0.95**self.t)
-        lin_vel_penalty = np.sum(pizza_linear_vel**2)
-        return catch_rew + flip_rew - 1e-3*np.sum((action)**2) - lin_vel_penalty
+        rew, obs = self.get_rew_obs()
+        return obs
 
     def get_rew_obs(self):
         pan_full_state  = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex, computeLinkVelocity=1)
@@ -146,11 +135,10 @@ class PandaChefEnv(object):
         pan_vel_penalty  = np.sum((pan_linear_velocity)**2) + np.sum((pan_angular_velocity)**2)
         cake_vel_penalty = np.sum((cake_linear_velocity)**2) + np.sum((cake_angular_velocity)**2)
         rew = -catch_cost -1e-3 * pan_vel_penalty -1e-4*cake_vel_penalty
-        print('reward: ',rew, 'obs', obs)
-        return obs
+        return rew, obs
 
     def step(self, action):
-        dcmd = np.clip(action*0, -1,1)
+        dcmd = np.clip(action, -1,1)
         new_pos = np.clip(self._set_cmd[0] + dcmd[:3] * self.action_scale[0], self.low_bnds[0], self.high_bnds[0])
         new_orn = np.clip(self._set_cmd[1] + dcmd[3:] * self.action_scale[1], self.low_bnds[1], self.high_bnds[1])
         new_quat_orn = bullet_client.getQuaternionFromEuler(new_orn)
@@ -168,20 +156,14 @@ class PandaChefEnv(object):
         for _ in range(self._frame_skip):
             bullet_client.stepSimulation()
 
-        # get the state for reward calculatin
-        ee_state    = bullet_client.getLinkState(self.robot_id, pandaEndEffectorIndex)
-        pizza_config  = bullet_client.getBasePositionAndOrientation(self.pancake_id)
-        pizza_vel   = bullet_client.getBaseVelocity(self.pancake_id)
-        reward      = 0.#self.get_reward(ee_state, (pizza_config, pizza_vel), action)
-        # self._set_cmd = new_cmd.copy()
-        obs = self.get_rew_obs()
+        rew, obs = self.get_rew_obs()
         done = False
         # if obs[2]<-0.05 or np.abs(obs[0])>0.5 or np.abs(obs[2]) > 0.3:
         #     done = True
         if np.abs(obs[0]) > 0.3: #or obs[2] > 0.6 or obs[2] < -0.3:
             done = True
         self.t += 1
-        return obs, reward, done, {}
+        return obs, rew, done, {}
 
 
 if __name__ == '__main__':
