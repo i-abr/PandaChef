@@ -76,6 +76,7 @@ class PandaChefEnv(object):
         # created some coordinate systems for debugging
         draw_coordinate(self.pancake_id)
         draw_coordinate(self.robot_id)
+        draw_coordinate(self.robot_id, parentLinkIndex=pandaEndEffectorIndex)
 
         # TODO: create coordinate for the target where you want the pancake to end up
 
